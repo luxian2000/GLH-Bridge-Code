@@ -70,9 +70,9 @@ Image sizes range from 2,048×2,048 to 16,384×16,384 pixels.
 Please employ the following scripts for training and inference:
 
 - **Training**:
-  - Multi-resolution data splitting: [`tools/split_code.py`](./tools/split_code.py)
-  - Load checkpoint for stage-by-stage training: [`tools/loadckpt_backbone.py`](./tools/loadckpt_backbone.py)
-  - Training script: [`train_dist_mmrot.sh`](./train_dist_mmrot.sh)
+  1. Multi-resolution data splitting: [`tools/split_code.py`](./tools/split_code.py)
+  2. Training script: [`train_dist_mmrot.sh`](./train_dist_mmrot.sh)
+  3. Load checkpoint for stage-by-stage training: [`tools/loadckpt_backbone.py`](./tools/loadckpt_backbone.py)
 
 - **Inference**:
   - Test script: [`test_mmrot_all.sh`](./test_mmrot_all.sh)
