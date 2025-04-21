@@ -247,8 +247,8 @@ data = dict(
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        img_prefix=data_root_test + 'images/',  # vis
-        ann_file=data_root_test + 'labelTxt/',
+        img_prefix=data_root_test + 'images/',
+        ann_file=data_root_test + 'images/',
         pipeline=test_pipeline))
 
 
