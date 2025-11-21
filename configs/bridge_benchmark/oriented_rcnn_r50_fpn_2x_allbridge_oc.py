@@ -1,11 +1,12 @@
 _base_ = [
-    '../_base_/datasets/dotav1.py', '../_base_/schedules/schedule_2x.py',
+    '../_base_/datasets/dotav1.py', 
+    '../_base_/schedules/schedule_2x.py',
     '../_base_/default_runtime.py'
 ]
 
 angle_version = 'oc'
 model = dict(
-    type='RotatedTwoStageDetectorImgFPN2',
+    type='OrientedRCNN',
     backbone=dict(
         type='ResNet',
         depth=50,
@@ -50,47 +51,14 @@ model = dict(
                 sample_num=2,
                 clockwise=True),
             out_channels=256,
-            finest_scale=16,  
+            finest_scale=16,
             featmap_strides=[4, 8, 16, 32]),
         bbox_head=dict(
             type='RotatedShared2FCBBoxHead',
             in_channels=256,
             fc_out_channels=1024,
             roi_feat_size=7,
-            # num_classes=15,
-            num_classes=1, 
-            bbox_coder=dict(
-                type='DeltaXYWHAOBBoxCoder',
-                angle_range=angle_version,
-                norm_factor=None,
-                edge_swap=True,
-                proj_xy=True,
-                target_means=(.0, .0, .0, .0, .0),
-                target_stds=(0.1, 0.1, 0.2, 0.2, 0.1)),
-            reg_class_agnostic=True,
-            loss_cls=dict(
-                type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-            loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0))),
-    global_roi_head=dict(
-        type='OrientedStandardRoIHead',
-        bbox_roi_extractor=dict(
-            type='RotatedSingleRoIExtractor',
-            roi_layer=dict(
-                type='RoIAlignRotated',
-                out_size=7,
-                sample_num=2,
-                clockwise=True),
-            out_channels=256,
-            finest_scale=16,  
-            featmap_strides=[4, 8, 16, 32]),
-        bbox_head=dict(
-            type='RotatedShared2FCBBoxHead',
-            in_channels=256,
-            fc_out_channels=1024,
-            roi_feat_size=7,
-            use_reweight=True,
-            # num_classes=15,
-            num_classes=1, 
+            num_classes=1,  
             bbox_coder=dict(
                 type='DeltaXYWHAOBBoxCoder',
                 angle_range=angle_version,
@@ -156,30 +124,26 @@ model = dict(
             nms=dict(iou_thr=0.4),
             max_per_img=400)))
 
+
 # DATASET
 dataset_type = 'DOTADataset'
 
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
-
-# data_root_test='/project/luojunwei/tmp_scratch_envs/WorldBridge/test2/test_tmp/'
-data_root_test='/project/luojunwei/tmp_scratch_envs/WorldBridge/test2/'
-
 train_pipeline = [
+    dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True), 
-    dict(type='LoadFPNImageFromFile',load_global_threshold=300,version='oc'),
     dict(type='RResize', img_scale=(1024, 1024)),  
     dict(
-        type='RandomFlipImgFPN',
+        type='RRandomFlip',
         flip_ratio=[0.25, 0.25, 0.25],
         direction=['horizontal', 'vertical', 'diagonal'],
-        version=angle_version),   
-    dict(type='NormalizeImgFPN', **img_norm_cfg),
+        version=angle_version),
+    dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
-    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels','g_img_list','g_img_infos'])
+    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
 ]
-
 
 val_pipeline = [
     dict(type='LoadImageFromFile'),
@@ -196,20 +160,8 @@ val_pipeline = [
         ])
 ]
 
-data_root_train='Bridge/train6/split_1024_gap200_iof03/'
-data_root_train_down2='Bridge/train6/global_split_1024/down2/'
-data_root_train_down4='Bridge/train6/global_split_1024/down4/'
-data_root_train_down8='Bridge/train6/global_split_1024/down8/'
-data_root_train_down16='Bridge/train6/global_split_1024/down16/'
 
-# load_from='xxx/oriented_rcnn_r50_fpn_2x_ImgFPN_orires/epoch_18.pth'
-# load_from='xxx/oriented_rcnn_r50_fpn_2x_ImgFPN_down2_loadfrom/epoch_12.pth'
-# load_from='xxx/oriented_rcnn_r50_fpn_2x_ImgFPN_down4_loadfrom_down2_loadfrom/epoch_6.pth'
-# load_from='xxx/oriented_rcnn_r50_fpn_2x_ImgFPN_down4_loadfrom-down2-ep12_loadfrom_lr001/epoch_6.pth'
-load_from='xxx/oriented_rcnn_r50_fpn_2x_ImgFPN_down8_loadfrom-down4-ep6-loadfrom-down2-ep12_loadfrom_lr001/epoch_4.pth'
-
-
-##### Raw large image
+##### Test Raw image
 test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
@@ -226,29 +178,16 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=1,
+    samples_per_gpu=4,
     workers_per_gpu=4,
     train=dict(
         type=dataset_type,
-        # img_prefix=data_root_train +'images/', 
-        # ann_file=data_root_train +'labelTxt/', 
-        # img_prefix=data_root_train_down2 +'images/', 
-        # ann_file=data_root_train_down2 +'labelTxt/',         
-        # img_prefix=data_root_train_down4 +'images/', 
-        # ann_file=data_root_train_down4 +'labelTxt/', 
-        # img_prefix=data_root_train_down8 +'images/', 
-        # ann_file=data_root_train_down8 +'labelTxt/', 
-        img_prefix=data_root_train_down16 +'images/', 
-        ann_file=data_root_train_down16 +'labelTxt/', 
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        # pipeline=val_pipeline), 
-        pipeline=test_pipeline),
+        pipeline=val_pipeline), 
     test=dict(
         type=dataset_type,
-        img_prefix=data_root_test + 'images/',
-        ann_file=data_root_test + 'images/',
         pipeline=test_pipeline))
 
 
@@ -266,4 +205,4 @@ lr_config = dict(
 
 runner = dict(type='EpochBasedRunner', max_epochs=training_times*12)
 checkpoint_config = dict(interval=2)
-evaluation = dict(interval=2)
+evaluation = dict(interval=6)
